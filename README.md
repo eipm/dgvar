@@ -18,9 +18,9 @@ The following databases are required:
 - Human GRCh37 reference genome
 - NCBI dbSNP v137
 - snpEff database GRCh37.75
-- NCBI ClinVar v20180805 (slim version available in `db` folder)
-- ExAC v0.3.1 (slim version available in `db` folder)
-- Exome target regions (Agilent HaloPlex bed file available in `db` folder)
+- NCBI ClinVar v20180805 (slim version available on [Box](https://wcm.box.com/s/nzzhudb6371cwuv1w2omtp84ripsfnsr))
+- ExAC v0.3.1 (slim version available on [Box](https://wcm.box.com/s/8t01e5eb3vf3f1idpg7zwq71ypos8qgz))
+- Exome target regions (Agilent HaloPlex bed file available on [Box](https://wcm.box.com/s/4bkw0f2rn858re30hq85lwgxxk33mes3))
 - dbNSFP v2.9.1 (optional)
 
 ## Installation
