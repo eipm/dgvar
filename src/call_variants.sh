@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
-# IPM_germline_pipeline.dev.sh
-# IPM germline pipeline (re-designed)
+# call_variants.sh
+# identify high-confidence deleterious germline variants (DGVs)
 # Version 1.5
 # Author: Tuo Zhang
 # Date: 10/2/2018
@@ -18,9 +18,9 @@ then
 	exit 1
 fi
 
-####bamfile=/zenodotus/elementolab/scratch/kwe2001/PM_Cases/Sample_PM198_EBC1_1_Ctrl_HALO/Sample_PM198_EBC1_1_Ctrl_HALO.md.filt.bam
+# BAM file used for variant calling
 bamfile=$1
-####sid=PM198_EBC1_1_Ctrl_HALO
+# Sample id (arbitrary name without any space)
 sid=$2
 
 # folders
@@ -28,7 +28,7 @@ basedir=/athena/ipm/scratch/users/taz2008/redteam2
 pipedir=${basedir}/germline_variant_v2
 workdir=${basedir}/request/Bishoy/171101/updated/info
 srcdir=${workdir}/../code
-codedir=${pipedir}/standalone/src
+##codedir=${pipedir}/standalone/src
 dbdir=${pipedir}/standalone/db
 tooldir=${pipedir}/standalone/tools
 vardir=${workdir}/raw_variants/${sid}
@@ -41,8 +41,8 @@ filtdir=${anndir}/filt
 filtlogdir=${filtdir}/logs
 #cadddir=${workdir}/cadd/${sid}
 #caddlogdir=${cadddir}/logs
-mafdir=${workdir}/../../info/maf
-maflogdir=${mafdir}/logs
+#mafdir=${workdir}/../../info/maf
+#maflogdir=${mafdir}/logs
 ####ipmannsuitedir=${vardir}/ipmannsuite
 ####ipmannsuitelogdir=${ipmannsuitedir}/logs
 
@@ -51,11 +51,11 @@ samtools=${tooldir}/samtools-0.1.19/samtools
 java=/softlib/exe/x86_64/bin/java
 java7=/home/taz2008/softwares/jre1.7.0_51/bin/java
 python=/home/taz2008/softwares/Python-2.7.6/python
-perl=/home/taz2008/perl/perl-5.22.2/bin/perl
+#perl=/home/taz2008/perl/perl-5.22.2/bin/perl
 gatk=${tooldir}/gatk/2.5.2/GenomeAnalysisTK.jar
 snpeff=/home/taz2008/softwares/snpEff_v4.2/snpEff.jar
 snpsift=/home/taz2008/softwares/snpEff_v4.2/SnpSift.jar
-vcf2maf=/athena/ipm/scratch/users/taz2008/softwares/mskcc-vcf2maf-2f82fa4/vcf2maf.pl
+#vcf2maf=/athena/ipm/scratch/users/taz2008/softwares/mskcc-vcf2maf-2f82fa4/vcf2maf.pl
 ####ipmannsuite=/home/kwe2001/scratch/IPM_Annotation_Suite.pl
 
 # configuration
@@ -64,7 +64,7 @@ mem=10g
 anndb=GRCh37.75
 #flag="-no-upstream -no-downstream -no-intergenic -formatEff -v -o gatk"
 flag="-no-upstream -no-downstream -no-intergenic -v"
-dbNSFPcols="genename,Uniprot_acc,Uniprot_id,Uniprot_aapos,cds_strand,Ensembl_geneid,Ensembl_transcriptid,aapos_SIFT,SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Polyphen2_HVAR_score,Polyphen2_HVAR_pred,MutationTaster_score,MutationTaster_pred,MetaSVM_score,MetaSVM_pred,MetaLR_score,MetaLR_pred,Reliability_index,ExAC_AC,ExAC_AF,clinvar_rs,clinvar_clnsig,clinvar_trait"
+#dbNSFPcols="genename,Uniprot_acc,Uniprot_id,Uniprot_aapos,cds_strand,Ensembl_geneid,Ensembl_transcriptid,aapos_SIFT,SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Polyphen2_HVAR_score,Polyphen2_HVAR_pred,MutationTaster_score,MutationTaster_pred,MetaSVM_score,MetaSVM_pred,MetaLR_score,MetaLR_pred,Reliability_index,ExAC_AC,ExAC_AF,clinvar_rs,clinvar_clnsig,clinvar_trait"
 ExACcols="AF,AdjAF,AN_Adj,AF_AFR,AF_AMR,AF_EAS,AF_FIN,AF_NFE,AF_SAS,AF_OTH,AF_MALE,AF_FEMALE"
 CLNcols="CLNVARID,CLNDN,CLNDISDB,CLNREVSTAT,CLNSIG,CLNSIGCONF,CLNVI,DBVARID,ORIGIN,GENEINFO,MC,RS,SSR"
 
@@ -75,21 +75,34 @@ snpdb=${dbdir}/dbsnp/dbsnp_137.b37.vcf
 ####clinvar=${dbdir}/clinvar/clinvar_20160531.vcf
 ####clinvar=${dbdir}/clinvar/clinvar_20160531.multiallelic.expanded.sorted.vcf.gz
 clinvar=${dbdir}/clinvar.20180805/clinvar_20180805.fix.vcf.gz
-dbnsfp=${dbdir}/dbNSFP_v2.9.1/dbNSFP2.9.1.txt.gz
+#dbnsfp=${dbdir}/dbNSFP_v2.9.1/dbNSFP2.9.1.txt.gz
 ####exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.vcf.gz
 ####exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.sorted.PASS.vcf.gz
 exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.PASS.vcf.gz
 exacnopass=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.nonPASS.vcf.gz
 target=${dbdir}/target/HaloPlex.b37.bed
 logofile=${dbdir}/logo/WCM_2Line_CoBrand_RGB.jpg
-acmgfile=${dbdir}/GeneSet/ACMG_genes.txt
-brocafile=${dbdir}/GeneSet/BROCA_genes.txt
-cancerfile=${dbdir}/GeneSet/Census_allThu_Jun_16_21-46-18_2016.tsv
-veppath=/athena/ipm/scratch/users/taz2008/softwares/VEP/vep
-vepdata=/athena/ipm/scratch/users/taz2008/softwares/VEP/.vep
-veprefseq=${vepdata}/homo_sapiens/86_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa.gz
-vepexac=${vepdata}/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz
+#acmgfile=${dbdir}/GeneSet/ACMG_genes.txt
+#brocafile=${dbdir}/GeneSet/BROCA_genes.txt
+#cancerfile=${dbdir}/GeneSet/Census_allThu_Jun_16_21-46-18_2016.tsv
+#veppath=/athena/ipm/scratch/users/taz2008/softwares/VEP/vep
+#vepdata=/athena/ipm/scratch/users/taz2008/softwares/VEP/.vep
+#veprefseq=${vepdata}/homo_sapiens/86_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa.gz
+#vepexac=${vepdata}/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz
+
 freqtablefile=${pipedir}/patch/info/processed.3.v2/frequency.no_genotype.no_FS.txt
+
+####################### functions #######################
+# check whether the previous command was successful
+# if not, exit with a pre-defined error message
+mycheck(){
+	if [ $? -ne 0 ]
+	then
+		echo "Error: $1"
+		exit 99
+	fi
+}
+#########################################################
 
 echo "Start to process Sample ${sid}."
 
@@ -114,7 +127,7 @@ else
 	####mkdir ${ipmannsuitedir}
 	####mkdir ${ipmannsuitelogdir}
 fi
-:<<TEST
+
 # check source bam
 echo -n "Checking source bam file..."
 if [ -e ${bamfile} ]
@@ -128,14 +141,11 @@ fi
 # copy source bam (and .bai) file to local directory
 echo -n "Copying bam and preparing idx bai..."
 cd ${vardir}
-#:<<TEST
+
 bam=Sample_${sid}.bam
 cp ${bamfile} ${bam}
-if [ $? -ne 0 ]
-then
-	echo -e "\nFailed to copy source bam ${bamfile} to the local directory `pwd`"
-	exit 2
-fi
+mycheck "\nFailed to copy source bam ${bamfile} to the local directory `pwd`"
+
 ${samtools} index ${bam}
 echo "ok."
 
