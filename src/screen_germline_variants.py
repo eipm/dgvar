@@ -22,12 +22,13 @@ from gzip import open
 
 class GermlineVars:
 	"Class for processing germline variants from a VCF file"
-	def __init__(self, sampleID, vcfFile, ACMGGeneFile, BROCAGeneFile, CancerGeneFile, outPrefix, logFile):
+	#def __init__(self, sampleID, vcfFile, ACMGGeneFile, BROCAGeneFile, CancerGeneFile, outPrefix, logFile):
+	def __init__(self, sampleID, vcfFile, outPrefix, logFile):
 		self.sampleID = sampleID
 		self.vcfFile = vcfFile
-		self.ACMGGeneFile = ACMGGeneFile
-		self.BROCAGeneFile = BROCAGeneFile
-		self.CancerGeneFile = CancerGeneFile
+		#self.ACMGGeneFile = ACMGGeneFile
+		#self.BROCAGeneFile = BROCAGeneFile
+		#self.CancerGeneFile = CancerGeneFile
 		self.outPrefix = outPrefix
 		self.logFile = logFile
 		self.gsep = "/"
@@ -70,12 +71,12 @@ class GermlineVars:
 			self.printMsg("Error: cannot find folder for logfile: %s"%(self.logFile), 101)
 		if not exists(dirname(self.outPrefix)):
 			self.printMsg("Error: cannot find output folder: %s"%(dirname(self.outPrefix)), 102)
-		if not exists(self.ACMGGeneFile):
-			self.printMsg("Error: cannot find the ACMG gene list file: %s"%(self.ACMGGeneFile), 103)
-		if not exists(self.BROCAGeneFile):
-			self.printMsg("Error: cannot find the BROCA gene list file: %s"%(self.BROCAGeneFile), 104)
-		if not exists(self.CancerGeneFile):
-			self.printMsg("Error: cannot find the Cancer gene list file: %s"%(self.CancerGeneFile), 105)
+		#if not exists(self.ACMGGeneFile):
+		#	self.printMsg("Error: cannot find the ACMG gene list file: %s"%(self.ACMGGeneFile), 103)
+		#if not exists(self.BROCAGeneFile):
+		#	self.printMsg("Error: cannot find the BROCA gene list file: %s"%(self.BROCAGeneFile), 104)
+		#if not exists(self.CancerGeneFile):
+		#	self.printMsg("Error: cannot find the Cancer gene list file: %s"%(self.CancerGeneFile), 105)
 
 	def readVCF(self):
 		# Load the query VCF
@@ -989,17 +990,17 @@ class GermlineVars:
 		# prepare file header line
 		self.writeHeaderToStr()
 		# output
-		fall = file(self.outPrefix+self.sampleID+".info.all.txt",'w')
-		frep = file(self.outPrefix+self.sampleID+".info.report.txt",'w')
+		fall = open(self.outPrefix+self.sampleID+".info.all.txt.gz",'wb')
+		#frep = file(self.outPrefix+self.sampleID+".info.report.txt",'w')
 		fall.write("\t".join(self.columnsHeader)+"\n")
-		frep.write("\t".join(self.columnsHeader)+"\n")
+		#frep.write("\t".join(self.columnsHeader)+"\n")
 		# output
 		for k in xrange(self.numVars["Total"]):
 			fall.write("\t".join(self.writeEntryToStr(k))+"\n")
-			if self.category[k] != "F":# anything that are not filtered
-				frep.write("\t".join(self.writeEntryToStr(k))+"\n")
+			#if self.category[k] != "F":# anything that are not filtered
+			#	frep.write("\t".join(self.writeEntryToStr(k))+"\n")
 		fall.close()
-		frep.close()
+		#frep.close()
 		self.printMsg("ok.\n", 0)
 
 	def run(self):
@@ -1007,7 +1008,7 @@ class GermlineVars:
 		self.printMsg("######  Start processing %s  ######\n"%(self.sampleID), 0)
 		# variant screening
 		self.verifyFiles()
-		self.readGeneList()
+		#self.readGeneList()
 		self.readVCF()
 		self.processAnnotations()
 		self.processFilters()
@@ -1030,20 +1031,22 @@ def help():
 	print "\tCancerGeneFile: the list of consensus cancer genes by COSMIC."
 
 def main(targs):
-	sampleID, inputFile, outPrefix, logFile, ACMGGeneFile, BROCAGeneFile, CancerGeneFile = None, None, None, None, None, None, None
+	#sampleID, inputFile, outPrefix, logFile, ACMGGeneFile, BROCAGeneFile, CancerGeneFile = None, None, None, None, None, None, None
+	sampleID, inputFile, outPrefix, logFile = None, None, None, None
 	try:
 		sampleID = targs[1]
 		inputFile = targs[2]
 		outPrefix = targs[3]
 		logFile = targs[4]
-		ACMGGeneFile = targs[5]
-		BROCAGeneFile = targs[6]
-		CancerGeneFile = targs[7]
+		#ACMGGeneFile = targs[5]
+		#BROCAGeneFile = targs[6]
+		#CancerGeneFile = targs[7]
 	except IndexError:
 		help()
 		sys.exit(1)
 
-	var = GermlineVars(sampleID, inputFile, ACMGGeneFile, BROCAGeneFile, CancerGeneFile, outPrefix, logFile)
+	#var = GermlineVars(sampleID, inputFile, ACMGGeneFile, BROCAGeneFile, CancerGeneFile, outPrefix, logFile)
+	var = GermlineVars(sampleID, inputFile, outPrefix, logFile)
 	var.run()
 
 if __name__ == "__main__":

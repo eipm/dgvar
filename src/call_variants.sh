@@ -98,7 +98,7 @@ freqtablefile=${pipedir}/patch/info/processed.3.v2/frequency.no_genotype.no_FS.t
 mycheck(){
 	if [ $? -ne 0 ]
 	then
-		echo "Error: $1"
+		echo -e "\nError: $1"
 		exit 99
 	fi
 }
@@ -141,119 +141,83 @@ fi
 # copy source bam (and .bai) file to local directory
 echo -n "Copying bam and preparing idx bai..."
 cd ${vardir}
+mycheck "Failed to change to directory ${vardir}"
 
 bam=Sample_${sid}.bam
 cp ${bamfile} ${bam}
-mycheck "\nFailed to copy source bam ${bamfile} to the local directory `pwd`"
+mycheck "Failed to copy source bam ${bamfile} to the local directory `pwd`"
 
-${samtools} index ${bam}
+bamprefix=${bamfile%.bam}
+if [ -e ${bamprefix}.bai ]
+then
+	cp ${bamprefix}.bai  Sample_${sid}.bai
+elif [ -e ${bamfile}.bai ]
+then
+	cp ${bamfile}.bai  ${bam}.bai
+else
+	${samtools} index ${bam}
+fi
+mycheck "Failed to get index for bam ${bamfile}"
 echo "ok."
 
 # produce raw variant calls
-echo -n "Make raw variant calls by GATK UnifiedGenotyper..."
+echo -n "Make raw variant calls using GATK UnifiedGenotyper..."
 ${java} -Xmx${mem} -Djava.io.tmpdir=${vartmpdir} -jar ${gatk} -glm BOTH -R ${refseq} -T UnifiedGenotyper -D ${snpdb} -o ${vardir}/${sid}.UG.raw.vcf -stand_call_conf 50.0 -stand_emit_conf 10.0 -minIndelFrac 0.1 -dcov 5000 -A AlleleBalance -A BaseCounts -A GCContent -A LowMQ -A SampleList -A VariantType -L ${target} -nt 8 -nct 4 \
 -I ${bam} \
 >${varlogdir}/${sid}.GATK.UnifiedGenotyper.log 2>&1
+mycheck "Failed to make variant calls using GATK UnifiedGenotyper"
 echo "ok."
 
 # filter raw variant calls
-echo -n "Filter raw variants by GATK VariantFiltration..."
+echo -n "Filter raw variants using GATK VariantFiltration..."
 ${java} -Xmx${mem} -Djava.io.tmpdir=${vartmpdir} -jar ${gatk} -R ${refseq} -T VariantFiltration -o ${vardir}/${sid}.UG.filtered.vcf --variant ${vardir}/${sid}.UG.raw.vcf --clusterWindowSize 10 --clusterSize 3  --filterExpression "(DP - MQ0) < 10" --filterName "LowCoverage" \
 >${varlogdir}/${sid}.GATK.VariantFiltration.log 2>&1
+mycheck "Failed to pre-filter variant calls using GATK VariantFiltration"
 echo "ok."
-
-# evaluate variant calls
-#echo -n "Evaluate variants by GATK VariantEval..."
-#${java} -Xmx${mem} -Djava.io.tmpdir=${vartmpdir} -jar ${gatk} -R ${refseq} -T VariantEval -D ${snpdb} -o ${vardir}/${sid}.UG.filtered.eval.gatkreport -eval ${vardir}/${sid}.UG.filtered.vcf -nt 4 -L ${target} \
-#>${varlogdir}/${sid}.GATK.VariantEval.log 2>&1
-#echo "ok."
-TEST
-
-# cp vcf files
-oldvcffile2=${pipedir}/variants_pipeline_result/${sid}/${sid}.UG.filtered.vcf.gz
-if [ ! -e ${oldvcffile2} ]
-then
-        echo "Cannot find vcf file: ${oldvcffile2}"
-        exit 100
-fi
-zcat ${oldvcffile2} >${vardir}/${sid}.UG.filtered.vcf
 
 # annotate variants using snpeff
-echo -n "Annotate variants by snpEff..."
+echo -n "Annotate variants using snpEff..."
 ${java7} -Xmx${mem} -Djava.io.tmpdir=${anntmpdir} -jar ${snpeff} ann -c ${config} -s ${anndir}/${sid}.summary.snpeff.UG.html ${flag} ${anndb} ${vardir}/${sid}.UG.filtered.vcf >${anndir}/${sid}.UG.filtered.snpeff.vcf 2>${annlogdir}/${sid}.snpeff.ann.log
+mycheck "Failed to annotate variants using snpEff"
 echo "ok."
-
-# add dbNSFP annotations using snpsift
-echo -n "Add dbNSFP annotations by snpSift..."
-${java7} -Xmx${mem} -Djava.io.tmpdir=${anntmpdir} -jar ${snpsift} dbnsfp -v -db ${dbnsfp} -f ${dbNSFPcols} ${anndir}/${sid}.UG.filtered.snpeff.vcf >${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.vcf 2>${annlogdir}/${sid}.snpsift.dbnsfp.log
-echo "ok."
-
-:<<TEST2
-# cp vcf files
-oldvcffile1=${pipedir}/variants_pipeline_result/${sid}/snpeff_gatk_v2/${sid}.UG.filtered.snpeff.dbnsfp.vcf.gz
-oldvcffile2=${pipedir}/variants_pipeline_result/${sid}/${sid}.UG.filtered.vcf.gz
-if [ ! -e ${oldvcffile1} ]
-then
-	echo "Cannot find vcf file: ${oldvcffile1}"
-	exit 99
-fi
-if [ ! -e ${oldvcffile2} ]
-then
-	echo "Cannot find vcf file: ${oldvcffile2}"
-	exit 100
-fi
-zcat ${oldvcffile1} >${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.vcf
-zcat ${oldvcffile2} >${vardir}/${sid}.UG.filtered.vcf
-TEST2
 
 # add clinVar annotations using snpsift
-echo -n "Add ClinVar annotations by snpSift..."
-${java7} -Xmx${mem} -Djava.io.tmpdir=${anntmpdir} -jar ${snpsift} annotate -v -noId -name clinvar -info ${CLNcols} ${clinvar} ${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.vcf >${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.clinvar.vcf 2>${annlogdir}/${sid}.snpsift.clinvar.log
+echo -n "Add ClinVar annotations using snpSift..."
+${java7} -Xmx${mem} -Djava.io.tmpdir=${anntmpdir} -jar ${snpsift} annotate -v -noId -name clinvar -info ${CLNcols} ${clinvar} ${anndir}/${sid}.UG.filtered.snpeff.vcf >${anndir}/${sid}.UG.filtered.snpeff.clinvar.vcf 2>${annlogdir}/${sid}.snpsift.clinvar.log
+mycheck "Failed to add ClinVar annotations"
 echo "ok."
 
 # add ExAC AF info using snpsift
-echo -n "Add ExAC AF annotations by snpSift..."
-${java7} -Xmx${mem} -Djava.io.tmpdir=${anntmpdir} -jar ${snpsift} annotate -v -noId -name exac -info ${ExACcols} ${exac} ${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.clinvar.vcf >${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.clinvar.ExAC.vcf 2>${annlogdir}/${sid}.snpsift.ExAC.log
+echo -n "Add ExAC AF (allele frequency) annotations by snpSift..."
+${java7} -Xmx${mem} -Djava.io.tmpdir=${anntmpdir} -jar ${snpsift} annotate -v -noId -name exac -info ${ExACcols} ${exac} ${anndir}/${sid}.UG.filtered.snpeff.clinvar.vcf >${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.vcf 2>${annlogdir}/${sid}.snpsift.ExAC.log
+mycheck "Failed to add ExAC AF annotations"
 echo "ok."
 
-# add ExAC AF info using snpsift
-echo -n "Add ExAC AF no-Pass annotations by snpSift..."
-${java7} -Xmx${mem} -Djava.io.tmpdir=${anntmpdir} -jar ${snpsift} annotate -v -noId -name exac -info ${ExACcols} ${exacnopass} ${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.clinvar.ExAC.vcf >${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.clinvar.ExAC.extend.vcf 2>${annlogdir}/${sid}.snpsift.ExAC.extend.log
+# add ExAC filterings using snpsift
+echo -n "Add ExAC filterings by snpSift..."
+${java7} -Xmx${mem} -Djava.io.tmpdir=${anntmpdir} -jar ${snpsift} annotate -v -noId -name exac -info ${ExACcols} ${exacnopass} ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.vcf >${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.extend.vcf 2>${annlogdir}/${sid}.snpsift.ExAC.extend.log
+mycheck "Failed to add ExAC filterings"
 echo "ok."
-gzip ${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.clinvar.ExAC.extend.vcf
+gzip ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.extend.vcf
+mycheck "Failed to gzip vcf ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.extend.vcf"
 
 # update FILTER column
-echo -n "Set ExAC filter..."
-${python} ${srcdir}/set_ExAC_filter.py ${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.clinvar.ExAC.extend.vcf.gz ${exacnopass} ${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.clinvar.ExAC.patch.vcf.gz >${annlogdir}/${sid}.set_ExAC_filter.log
+echo -n "Set ExAC filtering..."
+${python} ${srcdir}/set_ExAC_filter.py ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.extend.vcf.gz ${exacnopass} ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.patch.vcf.gz >${annlogdir}/${sid}.set_ExAC_filter.log
+mycheck "Failed to set ExAC filtering in vcf"
 echo "ok."
 
 # extract info and screen
-echo -n "Categorize variants..."
-${srcdir}/screen_germline_variants.v5.py ${sid} ${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.clinvar.ExAC.patch.vcf.gz ${filtdir}/ ${filtdir}/${sid}.screen_variants.warning.txt ${acmgfile} ${brocafile} ${cancerfile} >${filtlogdir}/${sid}.screen_germline_variants.v5.log 2>&1
-echo "ok."
-
-#### get CADD for variants
-####echo -n "Requesting for CADD scores..."
-####${python} ${srcdir}/simplify_vcf.py ${vardir}/${sid}.UG.filtered.vcf ${cadddir}/${sid}.for_CADD.vcf >${caddlogdir}/simplify_vcf.${sid}.log 2>&1
-####${python} ${srcdir}/run_CADD.v2.py ${cadddir}/${sid}.for_CADD.vcf ${cadddir}/${sid}.webpage.html.gz ${cadddir}/${sid}.CADD.gz >${caddlogdir}/run_CADD.${sid}.log 2>&1
-###### !!! need to wait until server generates results
-####${python} ${srcdir}/download_CADD.py ${cadddir}/${sid}.webpage.html.gz ${cadddir}/${sid}.CADD.gz >${caddlogdir}/download_CADD.${sid}.log 2>&1
-####sleep 20
-####${python} ${srcdir}/add_CADD.py ${filtdir}/${sid}.info.all.txt ${cadddir}/${sid}.CADD.gz ${filtdir}/${sid}.info.all.CADD.v2.txt.gz >${filtlogdir}/${sid}.add_CADD.log 2>&1
-####echo "ok."
-
-# get MAF for variants
-echo -n "Generate MAF..."
-${perl} ${vcf2maf}  --input-vcf  ${vardir}/${sid}.UG.filtered.vcf  --output-maf  ${mafdir}/${sid}.vep.maf --vep-path ${veppath}  --vep-data ${vepdata}  --ref-fasta ${veprefseq}  --filter-vcf ${vepexac}  --vcf-normal-id ${sid} >${maflogdir}/vcf2maf.${sid}.log 2>&1
-####gzip ${mafdir}/${sid}.UG.filtered.vep.vcf
-gzip ${filtdir}/${sid}.info.all.txt
-### !!! wait for CADD
-###${python} ${srcdir}/add_VEP.py ${filtdir}/${sid}.info.all.CADD.v2.txt.gz ${mafdir}/${sid}.vep.maf ${filtdir}/${sid}.info.all.CADD.VEP.v2.txt.gz >${filtlogdir}/${sid}.add_VEP.log 2>&1
-${python} ${srcdir}/add_VEP.py ${filtdir}/${sid}.info.all.txt.gz ${mafdir}/${sid}.vep.maf ${filtdir}/${sid}.info.all.VEP.v2.txt.gz >${filtlogdir}/${sid}.add_VEP.log 2>&1
+echo -n "Pre-categorize variants..."
+${python} ${srcdir}/screen_germline_variants.py ${sid} ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.patch.vcf.gz ${filtdir}/ ${filtdir}/${sid}.screen_variants.warning.txt >${filtlogdir}/${sid}.screen_germline_variants.log 2>&1
+mycheck "Failed to pre-categorize variants"
 echo "ok."
 
 # select candidates
+echo -n "Selecting candidate variants..."
 ${python} ${srcdir}/select_candidate_variants.v4.counts.no_FS.per_sample.py ${sid} ${filtdir}/${sid}.info.all.VEP.v2.txt.gz ${filtdir}/${sid}.candidates.v2.no_FS.txt.gz >${filtlogdir}/${sid}.select_candidate_variants.v4.counts.no_FS.per_sample.log 2>&1
+mycheck "Failed to select candidate variants"
+echo "ok."
 
 # filter common variants in the IPM_cohort
 ${python} ${srcdir}/remove_artifects.no_FS.py ${filtdir}/${sid}.candidates.v2.no_FS.txt.gz ${freqtablefile} ${filtdir}/${sid}.candidates.v2.no_FS.filter_common.txt >${filtlogdir}/${sid}.remove_artifects.no_FS.log 2>&1
