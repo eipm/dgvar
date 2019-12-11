@@ -23,6 +23,55 @@ bamfile=$1
 # Sample id (arbitrary name without any space)
 sid=$2
 
+# tools
+samtools=/athena/ipm/scratch/users/taz2008/redteam2/standalone/tools/samtools-0.1.19/samtools
+java=/softlib/exe/x86_64/bin/java
+java7=/home/taz2008/softwares/jre1.7.0_51/bin/java
+python=/home/taz2008/softwares/Python-2.7.6/python
+gatk=/athena/ipm/scratch/users/taz2008/redteam2/standalone/tools/gatk/2.5.2/GenomeAnalysisTK.jar
+snpeff=/home/taz2008/softwares/snpEff_v4.2/snpEff.jar
+snpsift=/home/taz2008/softwares/snpEff_v4.2/SnpSift.jar
+
+# configuration
+config=/home/taz2008/softwares/snpEff_v4.2/snpEff.config
+mem=10g
+anndb=GRCh37.75
+flag="-no-upstream -no-downstream -no-intergenic -v"
+ExACcols="AF,AdjAF,AN_Adj,AF_AFR,AF_AMR,AF_EAS,AF_FIN,AF_NFE,AF_SAS,AF_OTH,AF_MALE,AF_FEMALE"
+CLNcols="CLNVARID,CLNDN,CLNDISDB,CLNREVSTAT,CLNSIG,CLNSIGCONF,CLNVI,DBVARID,ORIGIN,GENEINFO,MC,RS,SSR"
+
+# directory where the package locates
+workdir=/athena/ipm/scratch/users/taz2008/redteam2/request/Bishoy/171101/pipeline/eipm/dgvar
+
+# data folders
+srcdir=${workdir}/src
+dbdir=${workdir}/db
+outdir=${workdir}/results
+vardir=${outdir}/${sid}
+varlogdir=${vardir}/logs
+vartmpdir=${vardir}/snp_tmp
+anndir=${vardir}/snpeff_gatk_v2
+annlogdir=${anndir}/logs
+anntmpdir=${anndir}/snpeff_tmp
+filtdir=${anndir}/filt
+filtlogdir=${filtdir}/logs
+
+# databases
+genomedir=${dbdir}/genome
+refseq=${genomedir}/human_g1k_b37.fasta
+snpdb=${dbdir}/dbsnp/dbsnp_137.b37.vcf
+####clinvar=${dbdir}/clinvar/clinvar_20160531.vcf
+####clinvar=${dbdir}/clinvar/clinvar_20160531.multiallelic.expanded.sorted.vcf.gz
+clinvar=${dbdir}/clinvar.20180805/clinvar_20180805.fix.vcf.gz
+#dbnsfp=${dbdir}/dbNSFP_v2.9.1/dbNSFP2.9.1.txt.gz
+####exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.vcf.gz
+####exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.sorted.PASS.vcf.gz
+exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.PASS.vcf.gz
+exacnopass=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.nonPASS.vcf.gz
+target=${dbdir}/target/HaloPlex.b37.bed
+logofile=${dbdir}/logo/WCM_2Line_CoBrand_RGB.jpg
+
+
 # folders
 basedir=/athena/ipm/scratch/users/taz2008/redteam2
 pipedir=${basedir}/germline_variant_v2
@@ -45,28 +94,6 @@ filtlogdir=${filtdir}/logs
 #maflogdir=${mafdir}/logs
 ####ipmannsuitedir=${vardir}/ipmannsuite
 ####ipmannsuitelogdir=${ipmannsuitedir}/logs
-
-# tools
-samtools=${tooldir}/samtools-0.1.19/samtools
-java=/softlib/exe/x86_64/bin/java
-java7=/home/taz2008/softwares/jre1.7.0_51/bin/java
-python=/home/taz2008/softwares/Python-2.7.6/python
-#perl=/home/taz2008/perl/perl-5.22.2/bin/perl
-gatk=${tooldir}/gatk/2.5.2/GenomeAnalysisTK.jar
-snpeff=/home/taz2008/softwares/snpEff_v4.2/snpEff.jar
-snpsift=/home/taz2008/softwares/snpEff_v4.2/SnpSift.jar
-#vcf2maf=/athena/ipm/scratch/users/taz2008/softwares/mskcc-vcf2maf-2f82fa4/vcf2maf.pl
-####ipmannsuite=/home/kwe2001/scratch/IPM_Annotation_Suite.pl
-
-# configuration
-config=/home/taz2008/softwares/snpEff_v4.2/snpEff.config
-mem=10g
-anndb=GRCh37.75
-#flag="-no-upstream -no-downstream -no-intergenic -formatEff -v -o gatk"
-flag="-no-upstream -no-downstream -no-intergenic -v"
-#dbNSFPcols="genename,Uniprot_acc,Uniprot_id,Uniprot_aapos,cds_strand,Ensembl_geneid,Ensembl_transcriptid,aapos_SIFT,SIFT_score,SIFT_pred,Polyphen2_HDIV_score,Polyphen2_HDIV_pred,Polyphen2_HVAR_score,Polyphen2_HVAR_pred,MutationTaster_score,MutationTaster_pred,MetaSVM_score,MetaSVM_pred,MetaLR_score,MetaLR_pred,Reliability_index,ExAC_AC,ExAC_AF,clinvar_rs,clinvar_clnsig,clinvar_trait"
-ExACcols="AF,AdjAF,AN_Adj,AF_AFR,AF_AMR,AF_EAS,AF_FIN,AF_NFE,AF_SAS,AF_OTH,AF_MALE,AF_FEMALE"
-CLNcols="CLNVARID,CLNDN,CLNDISDB,CLNREVSTAT,CLNSIG,CLNSIGCONF,CLNVI,DBVARID,ORIGIN,GENEINFO,MC,RS,SSR"
 
 # databases
 genomedir=${dbdir}/genome
