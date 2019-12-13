@@ -5,12 +5,6 @@
 # Author: Tuo Zhang
 # Date: 10/2/2018
 # 
-#
-# modified based on IPM_germline_pipeline.dev.sh
-# call variants and add preliminary annotations for TCGA bams
-# currently only focus on HaloPlex target regions
-# test: using new ClinVar annotations
-# 
 
 if [ $# -ne 2 ]
 then
@@ -24,11 +18,11 @@ bamfile=$1
 sid=$2
 
 # tools
-samtools=/athena/ipm/scratch/users/taz2008/redteam2/standalone/tools/samtools-0.1.19/samtools
+samtools=/athena/ipm/scratch/users/taz2008/redteam2/germline_variant_v2/standalone/tools/samtools-0.1.19/samtools
 java=/softlib/exe/x86_64/bin/java
 java7=/home/taz2008/softwares/jre1.7.0_51/bin/java
 python=/home/taz2008/softwares/Python-2.7.6/python
-gatk=/athena/ipm/scratch/users/taz2008/redteam2/standalone/tools/gatk/2.5.2/GenomeAnalysisTK.jar
+gatk=/athena/ipm/scratch/users/taz2008/redteam2/germline_variant_v2/standalone/tools/gatk/2.5.2/GenomeAnalysisTK.jar
 snpeff=/home/taz2008/softwares/snpEff_v4.2/snpEff.jar
 snpsift=/home/taz2008/softwares/snpEff_v4.2/SnpSift.jar
 
@@ -57,67 +51,15 @@ filtdir=${anndir}/filt
 filtlogdir=${filtdir}/logs
 
 # databases
-genomedir=${dbdir}/genome
-refseq=${genomedir}/human_g1k_b37.fasta
-snpdb=${dbdir}/dbsnp/dbsnp_137.b37.vcf
-####clinvar=${dbdir}/clinvar/clinvar_20160531.vcf
-####clinvar=${dbdir}/clinvar/clinvar_20160531.multiallelic.expanded.sorted.vcf.gz
-clinvar=${dbdir}/clinvar.20180805/clinvar_20180805.fix.vcf.gz
-#dbnsfp=${dbdir}/dbNSFP_v2.9.1/dbNSFP2.9.1.txt.gz
-####exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.vcf.gz
-####exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.sorted.PASS.vcf.gz
-exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.PASS.vcf.gz
-exacnopass=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.nonPASS.vcf.gz
-target=${dbdir}/target/HaloPlex.b37.bed
-logofile=${dbdir}/logo/WCM_2Line_CoBrand_RGB.jpg
+refseq=${dbdir}/human_g1k_b37.fasta
+snpdb=${dbdir}/dbsnp_137.b37.vcf
+clinvar=${dbdir}/clinvar_20180805.fix.vcf.gz
+exac=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.PASS.vcf.gz
+exacnopass=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.nonPASS.vcf.gz
+target=${dbdir}/HaloPlex.b37.bed
+geneann=${dbdir}/gene_annotations.txt
 
-
-# folders
-basedir=/athena/ipm/scratch/users/taz2008/redteam2
-pipedir=${basedir}/germline_variant_v2
-workdir=${basedir}/request/Bishoy/171101/updated/info
-srcdir=${workdir}/../code
-##codedir=${pipedir}/standalone/src
-dbdir=${pipedir}/standalone/db
-tooldir=${pipedir}/standalone/tools
-vardir=${workdir}/raw_variants/${sid}
-varlogdir=${vardir}/logs
-vartmpdir=${vardir}/snp_tmp
-anndir=${vardir}/snpeff_gatk_v2
-annlogdir=${anndir}/logs
-anntmpdir=${anndir}/snpeff_tmp
-filtdir=${anndir}/filt
-filtlogdir=${filtdir}/logs
-#cadddir=${workdir}/cadd/${sid}
-#caddlogdir=${cadddir}/logs
-#mafdir=${workdir}/../../info/maf
-#maflogdir=${mafdir}/logs
-####ipmannsuitedir=${vardir}/ipmannsuite
-####ipmannsuitelogdir=${ipmannsuitedir}/logs
-
-# databases
-genomedir=${dbdir}/genome
-refseq=${genomedir}/human_g1k_b37.fasta
-snpdb=${dbdir}/dbsnp/dbsnp_137.b37.vcf
-####clinvar=${dbdir}/clinvar/clinvar_20160531.vcf
-####clinvar=${dbdir}/clinvar/clinvar_20160531.multiallelic.expanded.sorted.vcf.gz
-clinvar=${dbdir}/clinvar.20180805/clinvar_20180805.fix.vcf.gz
-#dbnsfp=${dbdir}/dbNSFP_v2.9.1/dbNSFP2.9.1.txt.gz
-####exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.vcf.gz
-####exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.sorted.PASS.vcf.gz
-exac=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.PASS.vcf.gz
-exacnopass=${dbdir}/ExAC/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.nonPASS.vcf.gz
-target=${dbdir}/target/HaloPlex.b37.bed
-logofile=${dbdir}/logo/WCM_2Line_CoBrand_RGB.jpg
-#acmgfile=${dbdir}/GeneSet/ACMG_genes.txt
-#brocafile=${dbdir}/GeneSet/BROCA_genes.txt
-#cancerfile=${dbdir}/GeneSet/Census_allThu_Jun_16_21-46-18_2016.tsv
-#veppath=/athena/ipm/scratch/users/taz2008/softwares/VEP/vep
-#vepdata=/athena/ipm/scratch/users/taz2008/softwares/VEP/.vep
-#veprefseq=${vepdata}/homo_sapiens/86_GRCh37/Homo_sapiens.GRCh37.75.dna.primary_assembly.fa.gz
-#vepexac=${vepdata}/ExAC_nonTCGA.r0.3.1.sites.vep.vcf.gz
-
-freqtablefile=${pipedir}/patch/info/processed.3.v2/frequency.no_genotype.no_FS.txt
+freqtablefile=${dbdir}/eipm_common_variants.txt
 
 ####################### functions #######################
 # check whether the previous command was successful
@@ -147,12 +89,6 @@ else
 	mkdir ${anntmpdir}
 	mkdir ${filtdir}
 	mkdir ${filtlogdir}
-	#mkdir ${cadddir}
-	#mkdir ${caddlogdir}
-	#mkdir ${mafdir}
-	#mkdir ${maflogdir}
-	####mkdir ${ipmannsuitedir}
-	####mkdir ${ipmannsuitelogdir}
 fi
 
 # check source bam
@@ -240,11 +176,20 @@ ${python} ${srcdir}/screen_germline_variants.py ${sid} ${anndir}/${sid}.UG.filte
 mycheck "Failed to pre-categorize variants"
 echo "ok."
 
+# add gene annotations
+echo -n "Add gene annotation..."
+${python} ${srcdir}/add_gene_annotations.py ${filtdir}/${sid}.info.all.txt.gz ${geneann} ${filtdir}/${sid}.info.all.ann.txt.gz >${filtlogdir}/${sid}.add_gene_annotations.log 2>&1
+mycheck "Failed to add gene annotation"
+echo "ok."
+
 # select candidates
 echo -n "Selecting candidate variants..."
-${python} ${srcdir}/select_candidate_variants.v4.counts.no_FS.per_sample.py ${sid} ${filtdir}/${sid}.info.all.VEP.v2.txt.gz ${filtdir}/${sid}.candidates.v2.no_FS.txt.gz >${filtlogdir}/${sid}.select_candidate_variants.v4.counts.no_FS.per_sample.log 2>&1
+${python} ${srcdir}/select_candidate_variants.py ${sid} ${filtdir}/${sid}.info.all.ann.txt.gz ${filtdir}/${sid}.candidates.txt.gz >${filtlogdir}/${sid}.select_candidate_variants.log 2>&1
 mycheck "Failed to select candidate variants"
 echo "ok."
+
+echo "stop here."
+exit 0
 
 # filter common variants in the IPM_cohort
 ${python} ${srcdir}/remove_artifects.no_FS.py ${filtdir}/${sid}.candidates.v2.no_FS.txt.gz ${freqtablefile} ${filtdir}/${sid}.candidates.v2.no_FS.filter_common.txt >${filtlogdir}/${sid}.remove_artifects.no_FS.log 2>&1
