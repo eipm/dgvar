@@ -27,7 +27,7 @@ vdic = {}
 for x in ftable[1:]:
 	chrom,pos,ref,alt = x[0],x[1],x[2],x[3]
 	vid = ":".join([chrom,pos,ref,alt])
-	vdic[vid] = freq
+	vdic[vid] = ''
 print len(vdic),"common variants to filter."
 
 # read in variants
