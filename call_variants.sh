@@ -216,7 +216,7 @@ rm -f ${anndir}/${sid}.UG.filtered.snpeff.clinvar.vcf
 rm -f ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.vcf
 rm -f ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.extend.vcf.gz
 rm -f ${anndir}/${sid}.summary.snpeff.UG.*
-rm -f ${filtdir}/${sid}.info.all.*.txt.gz
+rm -f ${filtdir}/${sid}.info.all*.txt.gz
 rm -f ${filtdir}/${sid}.candidates.txt.gz
 
 echo "Complete processing Sample ${sid}."
