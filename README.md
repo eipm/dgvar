@@ -23,8 +23,8 @@ The following databases are required:
 - Exome target regions (Agilent HaloPlex bed file available on [Box](https://wcm.box.com/s/4bkw0f2rn858re30hq85lwgxxk33mes3))
 
 ## Installation
-No installation is needed. Download the codes as well as required database, and update the path in the main shell script `call_variants.sh`. Then run a quick test:
-- Make sure the current working directory is the dgvar folder, and then type `cd eg`
+Download the codes as well as the required database; update the path in the main shell script `call_variants.sh`, then run a quick test:
+- Make sure the current working directory is where dgvar is installed, and then type `cd eg`
 - Run a test by typing `sh test.sh`
 - Check results at `results/test/annotated/filt/test.candidates.filter_common.txt.gz`, you should see the variant in BRCA2 gene (13:32914437 GT --> G).
 
@@ -32,7 +32,8 @@ No installation is needed. Download the codes as well as required database, and 
 To run DGVar:
 - Update the path in the main shell script `call_variants.sh`
 - Run shell script `sh  call_variants.sh  in.bam  sampleID  target.bed`
-  where in.bam is the input bam file, 
+
+  where in.bam is the input bam file, sampleID is an unique id (no space allowed), target.bed is the bed file listing genomic regions to check for variants
 
 Run an example using the script in the `eg` folder.
 
