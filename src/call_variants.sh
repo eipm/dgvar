@@ -56,7 +56,8 @@ snpdb=${dbdir}/dbsnp_137.b37.vcf
 clinvar=${dbdir}/clinvar_20180805.fix.vcf.gz
 exac=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.PASS.vcf.gz
 exacnopass=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.nonPASS.vcf.gz
-target=${dbdir}/HaloPlex.b37.bed
+#target=${dbdir}/HaloPlex.b37.bed
+target=${workdir}/eg/eg.bed
 geneann=${dbdir}/gene_annotations.txt
 
 freqtablefile=${dbdir}/eipm_common_variants.txt
@@ -188,28 +189,28 @@ ${python} ${srcdir}/select_candidate_variants.py ${sid} ${filtdir}/${sid}.info.a
 mycheck "Failed to select candidate variants"
 echo "ok."
 
-echo "stop here."
-exit 0
+# filter common variants in the EIPM cohort
+echo -n "Filter common variants..."
+${python} ${srcdir}/filter_common_variants.py ${filtdir}/${sid}.candidates.txt.gz ${freqtablefile} ${filtdir}/${sid}.candidates.filter_common.txt.gz >${filtlogdir}/${sid}.filter_common_variants.log 2>&1
+mycheck "Failed to filter common variants"
+echo "ok."
 
-# filter common variants in the IPM_cohort
-${python} ${srcdir}/remove_artifects.no_FS.py ${filtdir}/${sid}.candidates.v2.no_FS.txt.gz ${freqtablefile} ${filtdir}/${sid}.candidates.v2.no_FS.filter_common.txt >${filtlogdir}/${sid}.remove_artifects.no_FS.log 2>&1
-gzip ${filtdir}/${sid}.candidates.v2.no_FS.filter_common.txt
-
-# search for potential false positive variants
-${python} ${srcdir}/remove_artifects.mis_align.no_FS.py ${filtdir}/${sid}.candidates.v2.no_FS.filter_common.txt.gz ${filtdir}/${sid}.info.all.txt.gz ${filtdir}/${sid}.candidates.v2.no_FS.filter_common.clean.txt.gz ${filtdir}/${sid}.candidates.v2.no_FS.filter_common.manual_review.txt.gz >${filtlogdir}/${sid}.remove_artifects.mis_align.no_FS.log 2>&1
+# counting candidate variants
+numVars=`zcat ${filtdir}/${sid}.candidates.filter_common.txt.gz |wc -l`
+echo "${numVars} candidate germline variants detected."
 
 # cleaning
 rm -rf ${vartmpdir}
 rm -rf ${anntmpdir}
-#rm ${vardir}/${bam}
-rm ${anndir}/${sid}.UG.filtered.snpeff.vcf
-gzip ${anndir}/${sid}.UG.filtered.snpeff.dbnsfp.vcf
-rm ${vardir}/${sid}.UG.filtered.vcf
-#gzip ${vardir}/${sid}*vcf
-gzip ${anndir}/${sid}*vcf
-#gzip ${anndir}/*.txt
-gzip ${anndir}/*.html
-gzip ${filtdir}/*.txt
+rm -f ${vardir}/${bam}*
+rm ${vardir}/${sid}.UG.raw.vcf*
+gzip ${vardir}/${sid}.UG.filtered.vcf*
+rm -f ${anndir}/${sid}.UG.filtered.snpeff.vcf
+rm -f ${anndir}/${sid}.UG.filtered.snpeff.clinvar.vcf
+rm -f ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.vcf
+rm -f ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.extend.vcf.gz
+rm -f ${anndir}/${sid}.summary.snpeff.UG.*
+rm -f ${filtdir}/${sid}.info.all.txt.gz
 
 echo "Complete processing Sample ${sid}."
 
