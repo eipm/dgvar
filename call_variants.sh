@@ -6,9 +6,13 @@
 # Date: 10/2/2018
 # 
 
-if [ $# -ne 2 ]
+if [ $# -ne 3 ]
 then
-	echo Usage: call_variants.sh bamfile sample_id
+	echo "Usage: call_variants.sh  in.bam  sampleID  target.bed"
+	echo "-----------------------------------------------------"
+	echo "       in.bam     - input bam file"
+	echo "       sampleID   - unique sample id (no space allowed)"
+	echo "       target.bed - bed file listing genomic regions to check for variants"
 	exit 1
 fi
 
@@ -16,6 +20,9 @@ fi
 bamfile=$1
 # Sample id (arbitrary name without any space)
 sid=$2
+# Target regions
+target=$3
+
 
 # tools
 samtools=/athena/ipm/scratch/users/taz2008/redteam2/germline_variant_v2/standalone/tools/samtools-0.1.19/samtools
@@ -43,10 +50,10 @@ dbdir=${workdir}/db
 outdir=${workdir}/results
 vardir=${outdir}/${sid}
 varlogdir=${vardir}/logs
-vartmpdir=${vardir}/snp_tmp
-anndir=${vardir}/snpeff_gatk_v2
+vartmpdir=${vardir}/var_tmp
+anndir=${vardir}/annotated
 annlogdir=${anndir}/logs
-anntmpdir=${anndir}/snpeff_tmp
+anntmpdir=${anndir}/ann_tmp
 filtdir=${anndir}/filt
 filtlogdir=${filtdir}/logs
 
@@ -56,8 +63,6 @@ snpdb=${dbdir}/dbsnp_137.b37.vcf
 clinvar=${dbdir}/clinvar_20180805.fix.vcf.gz
 exac=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.PASS.vcf.gz
 exacnopass=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.nonPASS.vcf.gz
-#target=${dbdir}/HaloPlex.b37.bed
-target=${workdir}/eg/eg.bed
 geneann=${dbdir}/gene_annotations.txt
 
 freqtablefile=${dbdir}/eipm_common_variants.txt
@@ -196,7 +201,8 @@ mycheck "Failed to filter common variants"
 echo "ok."
 
 # counting candidate variants
-numVars=`zcat ${filtdir}/${sid}.candidates.filter_common.txt.gz |wc -l`
+numLines=`zcat ${filtdir}/${sid}.candidates.filter_common.txt.gz |wc -l`
+numVars=`expr ${numLines} - 1`
 echo "${numVars} candidate germline variants detected."
 
 # cleaning
@@ -210,7 +216,8 @@ rm -f ${anndir}/${sid}.UG.filtered.snpeff.clinvar.vcf
 rm -f ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.vcf
 rm -f ${anndir}/${sid}.UG.filtered.snpeff.clinvar.ExAC.extend.vcf.gz
 rm -f ${anndir}/${sid}.summary.snpeff.UG.*
-rm -f ${filtdir}/${sid}.info.all.txt.gz
+rm -f ${filtdir}/${sid}.info.all.*.txt.gz
+rm -f ${filtdir}/${sid}.candidates.txt.gz
 
 echo "Complete processing Sample ${sid}."
 
