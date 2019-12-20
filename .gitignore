@@ -1,2 +1,5 @@
-db/
+db/clinvar_*
+db/ExAC.r0.3.1.*
+db/dbsnp*
+db/human_g1k_b37*
 results/
