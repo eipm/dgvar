@@ -15,12 +15,14 @@ DGVar was developed and tested on linux system. To run DGVar, you'll need a linu
 
 ## Pre-compiled database
 The following databases are required:
-- Human GRCh37 reference genome (b37, available on GATK resource [bundle](https://software.broadinstitute.org/gatk/download/bundle))
-- NCBI dbSNP v137 (available on GATK resource [bundle](https://software.broadinstitute.org/gatk/download/bundle))
-- SnpEff database GRCh37.75 (available on [SnpEff](http://snpeff.sourceforge.net/download.html#databases))
-- NCBI ClinVar v20180805 (slim version available on [Box](https://wcm.box.com/s/nzzhudb6371cwuv1w2omtp84ripsfnsr))
-- ExAC v0.3.1 (slim version available on [Box](https://wcm.box.com/s/8t01e5eb3vf3f1idpg7zwq71ypos8qgz))
-- Exome target regions (Agilent HaloPlex bed file available on [Box](https://wcm.box.com/s/4bkw0f2rn858re30hq85lwgxxk33mes3))
+- Human GRCh37 reference genome (b37, available at GATK resource [bundle](https://software.broadinstitute.org/gatk/download/bundle))
+- NCBI dbSNP v137 (available at GATK resource [bundle](https://software.broadinstitute.org/gatk/download/bundle))
+- SnpEff database GRCh37.75 (available at [SnpEff](http://snpeff.sourceforge.net/download.html#databases))
+- NCBI ClinVar v20180805 (slim version available at [Box](https://wcm.box.com/s/nzzhudb6371cwuv1w2omtp84ripsfnsr))
+- ExAC v0.3.1 (slim version available at [Box](https://wcm.box.com/s/8t01e5eb3vf3f1idpg7zwq71ypos8qgz))
+- Exome target regions (Agilent HaloPlex bed file available at [Box](https://wcm.box.com/s/4bkw0f2rn858re30hq85lwgxxk33mes3))
+- Onco/TSG annotations (available at [here](db/gene_annotations.txt))
+- Common variants in EIPM cohort (available at [here](db/eipm_common_variants.txt))
 
 ## Installation
 Download the codes as well as the required database; update the path in the main shell script `call_variants.sh`, then run a quick test:
