@@ -23,30 +23,52 @@ sid=$2
 # Target regions
 target=$3
 
+##################################### Please modify the paths/database files ##############################################
+# adjust the following path to reflect where you have downloaded the dgvar package
+workdir=/athena/ipm/scratch/users/taz2008/redteam2/request/Bishoy/171101/pipeline/eipm/dgvar
 
-# tools
+# adjust the following paths to reflect where you installed the tools
+# samtools
 samtools=/athena/ipm/scratch/users/taz2008/redteam2/germline_variant_v2/standalone/tools/samtools-0.1.19/samtools
-java=/softlib/exe/x86_64/bin/java
+# java v1.6 (used for GATK)
+java6=/softlib/exe/x86_64/bin/java
+# java v1.7 (used for snpEff/snpSift)
 java7=/home/taz2008/softwares/jre1.7.0_51/bin/java
+# python v2.7+
 python=/home/taz2008/softwares/Python-2.7.6/python
+# GATK v2.5.2
 gatk=/athena/ipm/scratch/users/taz2008/redteam2/germline_variant_v2/standalone/tools/gatk/2.5.2/GenomeAnalysisTK.jar
+# sneEff v4.2
 snpeff=/home/taz2008/softwares/snpEff_v4.2/snpEff.jar
 snpsift=/home/taz2008/softwares/snpEff_v4.2/SnpSift.jar
+config=/home/taz2008/softwares/snpEff_v4.2/snpEff.config
+
+# databases
+dbdir=${workdir}/db
+# human hg19 reference genome, please make sure you also have the dictionary file (.dict) and index file (.fai) in the save path
+refseq=${dbdir}/human_g1k_b37.fasta
+# dbSNP hg19 v137
+snpdb=${dbdir}/dbsnp_137.b37.vcf
+# ClinVar v20180805 (please download from our dgvar github repository)
+clinvar=${dbdir}/clinvar_20180805.fix.vcf.gz
+# ExAC database (please download from our dgvar github repository)
+exac=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.PASS.vcf.gz
+exacnopass=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.nonPASS.vcf.gz
+# Gene annotations (Onco genes and Tumor Suppressor genes, please download from our dgvar github repository)
+geneann=${dbdir}/gene_annotations.txt
+# Common variants in the EIPM cohort (wnload from our dgvar github repository)
+freqtablefile=${dbdir}/eipm_common_variants.txt
+##########################################################################################################################
 
 # configuration
-config=/home/taz2008/softwares/snpEff_v4.2/snpEff.config
 mem=10g
 anndb=GRCh37.75
 flag="-no-upstream -no-downstream -no-intergenic -v"
 ExACcols="AF,AdjAF,AN_Adj,AF_AFR,AF_AMR,AF_EAS,AF_FIN,AF_NFE,AF_SAS,AF_OTH,AF_MALE,AF_FEMALE"
 CLNcols="CLNVARID,CLNDN,CLNDISDB,CLNREVSTAT,CLNSIG,CLNSIGCONF,CLNVI,DBVARID,ORIGIN,GENEINFO,MC,RS,SSR"
 
-# directory where the package locates
-workdir=/athena/ipm/scratch/users/taz2008/redteam2/request/Bishoy/171101/pipeline/eipm/dgvar
-
 # data folders
 srcdir=${workdir}/src
-dbdir=${workdir}/db
 outdir=${workdir}/results
 vardir=${outdir}/${sid}
 varlogdir=${vardir}/logs
@@ -56,16 +78,6 @@ annlogdir=${anndir}/logs
 anntmpdir=${anndir}/ann_tmp
 filtdir=${anndir}/filt
 filtlogdir=${filtdir}/logs
-
-# databases
-refseq=${dbdir}/human_g1k_b37.fasta
-snpdb=${dbdir}/dbsnp_137.b37.vcf
-clinvar=${dbdir}/clinvar_20180805.fix.vcf.gz
-exac=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.PASS.vcf.gz
-exacnopass=${dbdir}/ExAC.r0.3.1.sites.vep.multiallelic.expanded.v2.sorted.nonPASS.vcf.gz
-geneann=${dbdir}/gene_annotations.txt
-
-freqtablefile=${dbdir}/eipm_common_variants.txt
 
 ####################### functions #######################
 # check whether the previous command was successful
@@ -131,7 +143,7 @@ echo "ok."
 
 # produce raw variant calls
 echo -n "Make raw variant calls using GATK UnifiedGenotyper..."
-${java} -Xmx${mem} -Djava.io.tmpdir=${vartmpdir} -jar ${gatk} -glm BOTH -R ${refseq} -T UnifiedGenotyper -D ${snpdb} -o ${vardir}/${sid}.UG.raw.vcf -stand_call_conf 50.0 -stand_emit_conf 10.0 -minIndelFrac 0.1 -dcov 5000 -A AlleleBalance -A BaseCounts -A GCContent -A LowMQ -A SampleList -A VariantType -L ${target} -nt 8 -nct 4 \
+${java6} -Xmx${mem} -Djava.io.tmpdir=${vartmpdir} -jar ${gatk} -glm BOTH -R ${refseq} -T UnifiedGenotyper -D ${snpdb} -o ${vardir}/${sid}.UG.raw.vcf -stand_call_conf 50.0 -stand_emit_conf 10.0 -minIndelFrac 0.1 -dcov 5000 -A AlleleBalance -A BaseCounts -A GCContent -A LowMQ -A SampleList -A VariantType -L ${target} -nt 8 -nct 4 \
 -I ${bam} \
 >${varlogdir}/${sid}.GATK.UnifiedGenotyper.log 2>&1
 mycheck "Failed to make variant calls using GATK UnifiedGenotyper"
@@ -139,7 +151,7 @@ echo "ok."
 
 # filter raw variant calls
 echo -n "Filter raw variants using GATK VariantFiltration..."
-${java} -Xmx${mem} -Djava.io.tmpdir=${vartmpdir} -jar ${gatk} -R ${refseq} -T VariantFiltration -o ${vardir}/${sid}.UG.filtered.vcf --variant ${vardir}/${sid}.UG.raw.vcf --clusterWindowSize 10 --clusterSize 3  --filterExpression "(DP - MQ0) < 10" --filterName "LowCoverage" \
+${java6} -Xmx${mem} -Djava.io.tmpdir=${vartmpdir} -jar ${gatk} -R ${refseq} -T VariantFiltration -o ${vardir}/${sid}.UG.filtered.vcf --variant ${vardir}/${sid}.UG.raw.vcf --clusterWindowSize 10 --clusterSize 3  --filterExpression "(DP - MQ0) < 10" --filterName "LowCoverage" \
 >${varlogdir}/${sid}.GATK.VariantFiltration.log 2>&1
 mycheck "Failed to pre-filter variant calls using GATK VariantFiltration"
 echo "ok."
