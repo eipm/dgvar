@@ -40,6 +40,7 @@ fin.close()
 
 # screen candidates and output
 print "PMid\tnumTotal\tnumHits\tnumClvP\tnumTrunc\tnumOnco\tnumQC\tnumExAC\tnumClvB\tnumInbreed"
+###print "#CHROM\tPOS\ttrunc\tnonTrunc\tcosonco\tcostsg\tuttsg"
 # screen
 numHits = numQC = numExAC = numClvP = numClvB = numTrunc = numInbreed = numOnco = 0
 fout = open(outfile,'wb')
@@ -59,6 +60,13 @@ for k,elements in enumerate(variants):
 	cosonco = elements[hdic["COSMIC_Onco"]]
 	costsg = elements[hdic["COSMIC_TSG"]]
 	uttsg = elements[hdic["UT_TSG"]]
+	# protein truncating?
+	trunc = False
+	nonTrunc = False
+	if "frameshift_variant" in effect or "stop_gained" in effect:
+		trunc = True
+	if "frameshift_variant" not in effect and "stop_gained" not in effect and "splice_acceptor_variant" not in effect and "splice_donor_variant" not in effect and "start_lost" not in effect and "stop_lost" not in effect:
+		nonTrunc = True
 	# filter
 	if category == "C.F" or category == "F":
 		mark = False
@@ -75,15 +83,18 @@ for k,elements in enumerate(variants):
 	elif "InbreedingCoeff_Filter" in filt or "VQSRTrancheINDEL" in filt or "VQSRTrancheSNP" in filt:# keep AC_Adj0_Filter
 		mark = False
 		numInbreed += 1
-	elif ("frameshift_variant" in effect or "stop_gained" in effect) and (costsg == "yes" or uttsg == "yes"):# protein truncating on TSG
+	elif trunc and (costsg == "yes" or uttsg == "yes"):# protein truncating variants on TSG will be kept
 		mark = True
 		numTrunc += 1
-	elif cosonco == "yes":# non-protein truncating on onco gene
-		mark == True
+	elif not nonTrunc and cosonco == "yes":# protein truncating variants on onco gene should be discarded
+		mark = False
 		numOnco += 1
+	else:
+		mark = False
 	# output
 	if mark:
 		numHits += 1
+		###print elements[hdic["#CHROM"]], elements[hdic["POS"]],trunc,nonTrunc,cosonco,costsg,uttsg
 		###fout.write(sid+"\t"+"\t".join([elements[hdic[x]] for x in outcols])+"\n")
 		fout.write(sid+"\t"+"\t".join([fix_splice_region(elements,hdic,x) for x in outcols])+"\n")# fix Splice_Region annotation
 fout.close()
